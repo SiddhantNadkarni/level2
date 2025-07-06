@@ -1,9 +1,11 @@
 #include <limits.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #ifdef COMPILE_ARM_PMU_CODE
 #include "arm_pmu.h"
@@ -33,6 +35,38 @@ size_t malloc_invocations = 0;
 size_t free_invocations = 0;
 
 struct timespec total_time;
+
+#define TIMEOUT_SECONDS 120
+
+void gracefully_exit_on_slow_search(int signal_number) {
+    // Use write() to tell the tester that their implementation is
+    // too slow. Searches should not take longer than one minute.
+    //
+    // Why not printf()/fprintf()? It goes against POSIX rules for
+    // signal handlers to call a non-reentrant function, of which both
+    // of those are. I had no about that constraint prior to writing
+    // this function. Cool!
+    //
+    const char* err_msg = "The current search timed out after two minutes.\n"
+                          "This indicates a performance issue, likely in your\n"
+                          "queue or linked list code that requires fixing.\n"
+                          "Even on my Raspberry Pi 4B (a decade old computer)\n"
+                          "no test takes longer than 30 seconds.\n"
+                          "Exiting.\n";
+    ssize_t retval      = write(STDOUT_FILENO, err_msg, strlen(err_msg));
+    fflush(stdout);
+
+    // We really don't care about whether write() succeeded or failed
+    // or whether a partial write occurred. Further, we only install
+    // this function to one signal handler, so we can ignore that as well.
+    //
+    (void)retval;
+    (void)signal_number;
+
+    // Exit.
+    //
+    exit(1);
+}
 
 void malloc_microbenchmark(void) {
     for (size_t i = 0; i < MALLOC_MICRO_ITERATIONS; i++) {
@@ -88,6 +122,7 @@ bool breadth_first_search(unsigned int i, unsigned int j) {
     unsigned int next_node = i;
     size_t node_count = 0;
     struct timespec start, stop;
+    alarm(TIMEOUT_SECONDS);
     GRAB_CLOCK(start)
     while(!found_path) {
         // Push data onto the queue.
@@ -129,6 +164,9 @@ bool breadth_first_search(unsigned int i, unsigned int j) {
     }
     queue_delete(queue);
     GRAB_CLOCK(stop)
+    // Turn off the timeout.
+    //
+    alarm(0);
     long nanoseconds = compute_timespec_diff(start, stop);
     struct timespec time_for_sum;
     time_for_sum.tv_nsec = nanoseconds % 1000000000ULL;
@@ -182,10 +220,14 @@ void add_edge(unsigned int i, unsigned int j) {
 
 int main(void) {
 
-    // Initialize malloc() and free()
+    // Initialize malloc() and free().
     //
     queue_register_malloc(instrumented_malloc);
     queue_register_free(instrumented_free);
+
+    // Register signal handler for graceful timeout.
+    //
+    signal(SIGALRM, gracefully_exit_on_slow_search);
 
     // Set up some state for perf monitoring.
     //
