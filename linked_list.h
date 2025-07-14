@@ -1,3 +1,26 @@
+/*
+*MIT License
+*
+*Copyright (c) 2025 Siddhant Nadkarni
+*
+*Permission is hereby granted, free of charge, to any person obtaining a copy
+*of this software and associated documentation files (the "Software"), to deal
+*in the Software without restriction, including without limitation the rights
+*to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+*copies of the Software, and to permit persons to whom the Software is
+*furnished to do so, subject to the following conditions:
+*
+*The above copyright notice and this permission notice shall be included in all
+*copies or substantial portions of the Software.
+*
+*THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+*OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+*SOFTWARE.
+*/
 #ifndef LINKED_LIST_H_
 #define LINKED_LIST_H_
 
@@ -22,6 +45,8 @@
 struct node;
 struct linked_list {
     struct node * head;
+    struct node * tail;
+    size_t size;
 };
 
 // A node in the linked_list structure.
@@ -50,9 +75,8 @@ struct iterator {
 //
 struct linked_list * linked_list_create(void);
 
-// Deletes a linked_list.
+// Deletes a linked_list and frees all memory assoicated with it.
 // \param ll : Pointer to linked_list to delete
-// POSTCONDITION : An empty linked_list has its head point to NULL.
 // Returns TRUE on success, FALSE otherwise.
 //
 bool linked_list_delete(struct linked_list * ll);
@@ -136,5 +160,17 @@ bool linked_list_register_malloc(void * (*malloc)(size_t));
 // Returns TRUE on success, FALSE otherwise.
 //
 bool linked_list_register_free(void (*free)(void*));
+
+
+// Populates iterators that are locally allocated
+// on stack. Avoid malloc/free calls per iterator creation.
+// \param linked_list : Pointer to linked_list.
+// \param index       : Index of the linked list to start at.
+// \param iterator    : Pointer to Iterator allocated locally on stack.
+// Returns TRUE on success, FALSE otherwise.
+//
+bool __linked_list_populate_iterator(struct linked_list* ll,
+                                    size_t index,
+                                    struct iterator* iterator);
 
 #endif
