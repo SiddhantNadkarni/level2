@@ -18,6 +18,15 @@
 // 
 struct queue {
     struct linked_list* ll;
+    //storing data at head
+    //improved performance by very slightly
+    //(probably within error margin)
+    unsigned int head_data;
+
+
+    //storing the queue size worsened
+    //performance slightly
+    //size_t size; 
 };
 
 
